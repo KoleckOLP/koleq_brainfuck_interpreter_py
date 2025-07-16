@@ -1,0 +1,57 @@
+Help on module brainfuck:
+
+NAME
+    brainfuck
+
+DESCRIPTION
+    Brainfuck Interpreter (Python 3)
+    Reads and executes Brainfuck code from a file, with optional debug printing.
+
+FUNCTIONS
+    clean_brainfuck_code(dirty_code)
+        Takes in dirty brainfuck code with whitespace and comments and returns clean brainfuck
+        Only returns valid Brainfuck commands: []<>+-,.
+
+    debug_print(*args)
+        Prints messages only if DEBUG flag is True.
+        Accepts any arguments like the built-in print().
+
+    execute_brainfuck(code, pairs)
+        Execute brainfuck code on the given memory and pointer.
+
+        Todo:
+            implement input or ','
+
+        Note:
+            looping by anything other than -1 is not supported.
+
+    find_closing_bracket(pairs, start_index)
+
+    find_matching_brackets(code)
+        Return sorted list of matching bracket index pairs in Brainfuck code.
+
+        Raises SyntaxError on unmatched brackets.
+
+    main()
+
+    run_brainfuck_from_file(filename)
+        Runs the brainfuck interpreter and code from file
+        it reads file, cleans the brainfuck code of any whitespace, and runs it.
+
+    run_interpreter(code)
+        Runs the brainfuck interpreter on clean code
+        you have to provide clean brainfuck, use clean_brainfuck_code to remove whitespace and comments
+
+DATA
+    BYTE_MAX = 255
+    BYTE_MIN = 0
+    DEBUG = False
+    DEBUG_FILE = 'helloML.bf'
+    MEMORY_SIZE = 30000
+    memory = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...
+    pointer = 0
+
+FILE
+    c:\users\mlolek c3\desktop\brainfuck_py\brainfuck.py
+
+
