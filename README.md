@@ -8,12 +8,13 @@ For detailed API docs and usage, check out doc.txt.
 ## Features
 
 - Brainfuck code execution
+- Two copies of the runtime, better one (chat_execute_brainfuck) and worse one (execute_brainfuck)
 - Basic command-line interface
-- Pure Python, no external libs required
+- Pure Python, no external libs required (brainfuck.py uses sys, unittest_brainfuck.py uses os, unittest, brainfuc)
 - Unit tests included
-- Recursive loop handling with some known quirks (see source comments)
+- Actually fixed recursive looping
 - Examples included (Some examples are not valid brainfuck and were used for testing edge cases)
-- lazy make file
+- Lazy make file
 
 ## Usage
 
