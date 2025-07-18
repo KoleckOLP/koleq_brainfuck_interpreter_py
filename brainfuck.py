@@ -4,11 +4,10 @@ Reads and executes Brainfuck code from a file, with optional debug printing.
 """
 import sys
 
-DEBUG = False
-DEBUG_FILE = "helloML.bf"
 BYTE_MIN = 0
 BYTE_MAX = 255
 MEMORY_SIZE = 30000
+MIN_INDEX = 5
 
 # global vars
 memory = [0] * MEMORY_SIZE
@@ -31,7 +30,6 @@ def clean_brainfuck_code(dirty_code):
 
     code = ''.join(code_no_comments)
     code = ''.join(c for c in code if c in allowed)
-    debug_print(code)
     return code
 
 
@@ -69,19 +67,12 @@ def find_closing_bracket(pairs, start_index):
     return None  # or raise an exception if not found
 
 
-def execute_brainfuck(code, pairs):
-    """
-    Execute brainfuck code on the given memory and pointer.
-
-    Todo:
-        implement input or ','
-
-    Note:
-        looping by anything other than -1 is not supported.
-    """
+# This is an improved version by ChatGPT (thx babe) this actually skips over loop that has been ran.
+def chat_execute_brainfuck(code, pairs):
     global memory, pointer
-    for index, char in enumerate(code):
-        #debug_print(char)
+    index = 0
+    while index < len(code):
+        char = code[index]
         if char == '+':
             if memory[pointer] < BYTE_MAX:
                 memory[pointer] += 1
@@ -89,36 +80,61 @@ def execute_brainfuck(code, pairs):
             if memory[pointer] > BYTE_MIN:
                 memory[pointer] -= 1
         elif char == '>':
-                if pointer + 1 >= MEMORY_SIZE:
-                    raise IndexError(f"Pointer would go out of bounds: {pointer + 1}")
-                pointer += 1
+            if pointer + 1 >= MEMORY_SIZE:
+                raise IndexError(f"Pointer out of bounds: {pointer + 1}")
+            pointer += 1
         elif char == '<':
-                if pointer - 1 < 0:
-                    raise IndexError(f"Pointer would go out of bounds: {pointer - 1}")
-                pointer -= 1
+            if pointer - 1 < 0:
+                raise IndexError(f"Pointer out of bounds: {pointer - 1}")
+            pointer -= 1
         elif char == '[':
             end = find_closing_bracket(pairs, index)
             loopcode = code[index+1:end]
-            #debug_print(loopcode)
-            # listen here person unfortunate to read this, this code is fucked, but works, don't touch it.
-            # probably buggy in edge cases but what are you gonna do refactor it? didn't think so.
-            while memory[pointer] != 1:
-                #debug_print(memory[:5])
+            while memory[pointer] != 0:
                 execute_brainfuck(loopcode, pairs)
-                # red hot patch for looping by even numbers
-                if memory[pointer] == 0:
-                    break
+            index = end  # Skip over the loop body after finishing
         elif char == '.':
             print(chr(memory[pointer]), end="")
+        index += 1
 
 
-def debug_print(*args):
+# This is my version that is correct but goes over loop code after running it without running it when it's done looping.
+def execute_brainfuck(code, pairs):
     """
-    Prints messages only if DEBUG flag is True.
-    Accepts any arguments like the built-in print().
+    Execute brainfuck code on the given memory and pointer.
+
+    Todo:
+        implement input or ','
     """
-    if DEBUG:
-        print(*args)
+    loop = False
+    global memory, pointer
+    for index, char in enumerate(code):
+        if not loop:
+            if char == '+':
+                if memory[pointer] < BYTE_MAX:
+                    memory[pointer] += 1
+            elif char == '-':
+                if memory[pointer] > BYTE_MIN:
+                    memory[pointer] -= 1
+            elif char == '>':
+                    if pointer + 1 >= MEMORY_SIZE:
+                        raise IndexError(f"Pointer would go out of bounds: {pointer + 1}")
+                    pointer += 1
+            elif char == '<':
+                    if pointer - 1 < 0:
+                        raise IndexError(f"Pointer would go out of bounds: {pointer - 1}")
+                    pointer -= 1
+            elif char == '[':
+                end = find_closing_bracket(pairs, index)
+                loopcode = code[index+1:end]
+                while memory[pointer] != 0:
+                    execute_brainfuck(loopcode, pairs)
+                    loop = True
+            elif char == '.':
+                print(chr(memory[pointer]), end="")
+        else:
+            if char == ']':
+                loop = False
 
 
 def run_interpreter(code):
@@ -131,10 +147,8 @@ def run_interpreter(code):
     pointer = 0
 
     pairs = find_matching_brackets(code)
-    debug_print(pairs)
 
     execute_brainfuck(code, pairs)
-    debug_print(memory[:5])
 
 
 def run_brainfuck_from_file(filename):
@@ -148,10 +162,59 @@ def run_brainfuck_from_file(filename):
     run_interpreter(code)
 
 
+def reset_state():
+    global memory, pointer
+    memory = [0] * MEMORY_SIZE
+    pointer = 0
+
+
+def last_nonzero_index(lst):
+    """
+    Returns the length to consider for the memory tape:
+    - The index of last non-zero element + 1 (to count length),
+    - or min_length if the last non-zero index is less than min_length - 1,
+    - or min_length if all zeros.
+    """
+    for index in range(len(lst) - 1, -1, -1):
+        if lst[index] != 0:
+            return max(index + 1, MIN_INDEX)
+    return MIN_INDEX
+
+
+def print_memory(memory, pointer, fmt="dec"):
+    """
+    Prints the memory tape slice based on last non-zero index or min_index.
+    fmt: 'dec', 'hex', or 'char' - output format
+    pointer: current tape pointer (int)
+    """
+    length_to_show = last_nonzero_index(memory)
+    visible = memory[:length_to_show]
+
+    # Format cells according to fmt
+    if fmt == "dec":
+        formatted = [f"{c:4}" for c in visible]
+    elif fmt == "hex":
+        formatted = [f"0x{c:02X}" for c in visible]
+    elif fmt == "char":
+        def to_char(c):
+            if 32 <= c <= 126:  # printable ASCII range
+                return f" '{chr(c)}'"
+            else:
+                return " '.'"
+        formatted = [to_char(c) for c in visible]
+    else:
+        raise ValueError("Invalid fmt: choose 'dec', 'hex', or 'char'")
+
+    # Print in chunks of 10
+    chunk_size = 10
+    for i in range(0, length_to_show, chunk_size):
+        chunk = formatted[i:i+chunk_size]
+        line_str = " ".join(chunk)
+        print(f"{line_str}")
+
+
 def main():
-    if DEBUG:
-        filename = DEBUG_FILE
-    elif len(sys.argv) > 1:
+    if len(sys.argv) > 1:
         filename = sys.argv[1]
         if not filename.endswith(".bf"):
             filename += ".bf"
